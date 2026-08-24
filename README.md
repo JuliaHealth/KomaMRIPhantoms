@@ -16,6 +16,7 @@ title: Cardiac Motion Phantom
 image: https://zenodo.org/records/123456/files/preview.webp
 zenodo: https://zenodo.org/records/123456
 paper: https://doi.org/10.0000/example
+size_bytes: 123456789
 tested_on:
   KomaMRI: 0.9.4
   KomaMRIBase: 0.9.4
@@ -31,7 +32,7 @@ submitted_by: github-username
 Description of at most 100 words.
 ```
 
-Only list KomaMRI subpackages actually used, always with exact tested versions. Tags are lowercase and automatically become catalog filters.
+`size_bytes` is fetched automatically from the `.phantom` files in the Zenodo record; contributors do not enter it. Only list KomaMRI subpackages actually used, always with exact tested versions. Tags are lowercase and automatically become catalog filters.
 
 ## Maintenance
 

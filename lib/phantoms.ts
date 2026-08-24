@@ -9,6 +9,7 @@ export type Phantom = {
   image: string;
   zenodo: string;
   paper?: string;
+  size_bytes: number;
   tested_on: Record<string, string>;
   tags: string[];
   submitted_by: string;
@@ -39,6 +40,7 @@ export function getPhantoms(): Phantom[] {
         image: data.image,
         zenodo: data.zenodo,
         paper: data.paper || undefined,
+        size_bytes: data.size_bytes,
         tested_on: data.tested_on ?? {},
         tags: data.tags ?? [],
         submitted_by: data.submitted_by,

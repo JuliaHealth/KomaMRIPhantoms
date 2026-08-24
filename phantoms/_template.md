@@ -3,6 +3,7 @@ title: Cardiac Motion Phantom
 image: https://zenodo.org/records/123456/files/preview.webp
 zenodo: https://zenodo.org/records/123456
 paper: https://doi.org/10.0000/example
+size_bytes: 123456789
 tested_on:
   KomaMRI: 0.9.4
   KomaMRIBase: 0.9.4

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { createSubmission } from './create-submission.mjs';
 import { parseMatter } from './schema.mjs';
 
 const issueBody = `### Phantom title
@@ -35,20 +35,26 @@ KomaMRICore: 0.9.4
 
 cardiac, motion`;
 
-test('converts an issue form into one attributed metadata file', () => {
+test('converts an issue form into one attributed metadata file', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'komamri-phantom-'));
   fs.mkdirSync(path.join(directory, 'phantoms'));
-  const result = spawnSync(process.execPath, [path.resolve('scripts/create-submission.mjs')], {
-    cwd: directory,
-    encoding: 'utf8',
-    env: { ...process.env, ISSUE_BODY: issueBody, ISSUE_USER: 'octocat' },
+  await createSubmission({
+    body: issueBody,
+    submittedBy: 'octocat',
+    root: directory,
+    fetcher: async () => new Response(JSON.stringify({
+      files: [
+        { key: 'cardiac.phantom', size: 1_500_000_000 },
+        { key: 'preview.webp', size: 120_000 },
+      ],
+    }), { status: 200, headers: { 'content-type': 'application/json' } }),
   });
 
-  assert.equal(result.status, 0, result.stderr);
   const filename = path.join(directory, 'phantoms', 'cardiac-motion-phantom.md');
   assert.equal(fs.existsSync(filename), true);
   const phantom = parseMatter(fs.readFileSync(filename, 'utf8'));
   assert.equal(phantom.data.submitted_by, 'octocat');
+  assert.equal(phantom.data.size_bytes, 1_500_000_000);
   assert.deepEqual(phantom.data.tags, ['cardiac', 'motion']);
   assert.deepEqual(phantom.data.tested_on, { KomaMRI: '0.9.4', KomaMRICore: '0.9.4' });
 

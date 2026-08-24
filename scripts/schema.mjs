@@ -48,6 +48,7 @@ export function validatePhantom({ data, content }, filename = 'phantom') {
   if (!data.image?.trim()) fail('image is required');
   if (!data.zenodo?.trim()) fail('zenodo is required');
   if (!data.submitted_by?.trim()) fail('submitted_by is required');
+  if (!Number.isSafeInteger(data.size_bytes) || data.size_bytes < 1) fail('size_bytes must be a positive integer');
 
   const count = wordCount(content);
   if (count < 1 || count > 100) fail(`description must contain 1–100 words; found ${count}`);
@@ -106,8 +107,37 @@ export function parseFile(filename) {
   return validatePhantom(parseMatter(fs.readFileSync(filename, 'utf8')), filename);
 }
 
-async function checkUrl(value, label, expectImage = false) {
-  const response = await fetch(value, {
+function zenodoRecordId(value) {
+  const url = httpsUrl(value, 'zenodo');
+  const match = url.pathname.match(/^\/records\/(\d+)/u);
+  if (!match) throw new Error('zenodo must link to a Zenodo record');
+  return match[1];
+}
+
+export async function fetchPhantomSize(zenodo, fetcher = fetch) {
+  const response = await fetcher(`https://zenodo.org/api/records/${zenodoRecordId(zenodo)}`, {
+    signal: AbortSignal.timeout(20_000),
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'KomaMRIPhantoms metadata fetcher',
+    },
+  });
+  if (!response.ok) throw new Error(`zenodo returned HTTP ${response.status}`);
+
+  const record = await response.json();
+  const phantomFiles = (record.files ?? []).filter((file) =>
+    String(file.key ?? file.filename ?? '').toLowerCase().endsWith('.phantom'));
+  if (!phantomFiles.length) throw new Error('Zenodo record contains no .phantom file');
+
+  const sizes = phantomFiles.map((file) => Number(file.size));
+  if (sizes.some((size) => !Number.isSafeInteger(size) || size < 1)) {
+    throw new Error('Zenodo returned an invalid .phantom file size');
+  }
+  return sizes.reduce((total, size) => total + size, 0);
+}
+
+async function checkUrl(value, label, expectImage = false, fetcher = fetch) {
+  const response = await fetcher(value, {
     redirect: expectImage ? 'follow' : 'manual',
     signal: AbortSignal.timeout(20_000),
     headers: { 'User-Agent': 'KomaMRIPhantoms link validator' },
@@ -121,10 +151,13 @@ async function checkUrl(value, label, expectImage = false) {
   await response.body?.cancel();
 }
 
-export async function validateLinks(data) {
-  await Promise.all([
-    checkUrl(data.zenodo, 'zenodo'),
-    checkUrl(data.image, 'image', true),
-    data.paper ? checkUrl(data.paper, 'paper') : undefined,
+export async function validateLinks(data, fetcher = fetch) {
+  const [size] = await Promise.all([
+    fetchPhantomSize(data.zenodo, fetcher),
+    checkUrl(data.image, 'image', true, fetcher),
+    data.paper ? checkUrl(data.paper, 'paper', false, fetcher) : undefined,
   ]);
+  if (size !== data.size_bytes) {
+    throw new Error(`size_bytes is ${data.size_bytes}; Zenodo reports ${size}`);
+  }
 }

@@ -42,6 +42,12 @@ const words = (value: string) => value.trim().split(/\s+/u).filter(Boolean).leng
 const tagsFrom = (value: string) =>
   [...new Set(value.split(',').map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
 const isVersion = (value: string) => /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value);
+const formatBytes = (bytes: number) => {
+  if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(bytes >= 10_000_000_000 ? 1 : 2)} GB`;
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(bytes >= 10_000_000 ? 1 : 2)} MB`;
+  if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} kB`;
+  return `${bytes} B`;
+};
 
 function isUrl(value: string, host?: string) {
   try {
@@ -71,17 +77,20 @@ function PhantomCard({ phantom, preview = false }: { phantom: Phantom; preview?:
       <div className="card-body">
         <div className="card-heading">
           <h3>{phantom.title || 'Your phantom title'}</h3>
-          <details className="compatibility">
-            <summary>Tested on KomaMRI {komaVersion}</summary>
-            <div className="compatibility-details">
-              <strong>Tested package versions</strong>
-              <dl>
-                {Object.entries(phantom.tested_on).map(([name, version]) => (
-                  <div key={name}><dt>{name}</dt><dd>{version}</dd></div>
-                ))}
-              </dl>
-            </div>
-          </details>
+          <div className="card-facts">
+            <details className="compatibility">
+              <summary>Tested on KomaMRI {komaVersion}</summary>
+              <div className="compatibility-details">
+                <strong>Tested package versions</strong>
+                <dl>
+                  {Object.entries(phantom.tested_on).map(([name, version]) => (
+                    <div key={name}><dt>{name}</dt><dd>{version}</dd></div>
+                  ))}
+                </dl>
+              </div>
+            </details>
+            {phantom.size_bytes > 0 && <span>{formatBytes(phantom.size_bytes)}</span>}
+          </div>
         </div>
 
         <p className="description">
@@ -168,6 +177,7 @@ export default function Catalog({ phantoms }: { phantoms: Phantom[] }) {
     image: form.image,
     zenodo: form.zenodo,
     paper: form.paper || undefined,
+    size_bytes: 0,
     tested_on: testedOn,
     tags: formTags,
     submitted_by: 'you',
@@ -335,19 +345,33 @@ export default function Catalog({ phantoms }: { phantoms: Phantom[] }) {
             <legend>Tested on <b>Exact versions</b></legend>
             <p>Enter KomaMRI and every subpackage used to create or load the phantom.</p>
             <div className="version-grid">
-              {packageNames.map((name) => (
-                <label key={name}>
-                  <span>{name}{name === 'KomaMRI' && <b>Required</b>}</span>
-                  <input
-                    value={form.tested_on[name]}
-                    onChange={(event) => setForm((current) => ({
-                      ...current,
-                      tested_on: { ...current.tested_on, [name]: event.target.value },
-                    }))}
-                    placeholder="0.9.4"
-                  />
-                </label>
-              ))}
+              <label>
+                <span>KomaMRI</span>
+                <input
+                  aria-required="true"
+                  value={form.tested_on.KomaMRI}
+                  onChange={(event) => setForm((current) => ({
+                    ...current,
+                    tested_on: { ...current.tested_on, KomaMRI: event.target.value },
+                  }))}
+                  placeholder="0.9.4"
+                />
+              </label>
+              <div className="subpackage-grid">
+                {packageNames.slice(1).map((name) => (
+                  <label key={name}>
+                    <span>{name}</span>
+                    <input
+                      value={form.tested_on[name]}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        tested_on: { ...current.tested_on, [name]: event.target.value },
+                      }))}
+                      placeholder="0.9.4"
+                    />
+                  </label>
+                ))}
+              </div>
             </div>
             {submitted && formErrors.versions && <small className="error">Use exact versions such as 0.9.4; KomaMRI is required.</small>}
           </fieldset>
