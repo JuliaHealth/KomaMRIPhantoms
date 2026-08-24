@@ -1,0 +1,58 @@
+name: Submit a phantom
+description: Review metadata prepared by the KomaMRI Phantom Library website.
+title: "[Phantom submission] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Review the prefilled metadata below, then submit it. An automated one-file pull request will be opened for maintainers to review.
+  - type: input
+    id: phantom_title
+    attributes:
+      label: Phantom title
+      placeholder: Cardiac Motion Phantom
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: No more than 100 words.
+    validations:
+      required: true
+  - type: input
+    id: zenodo
+    attributes:
+      label: Zenodo record
+      placeholder: https://zenodo.org/records/…
+    validations:
+      required: true
+  - type: input
+    id: image
+    attributes:
+      label: Preview image
+      description: Direct HTTPS link to a preview image stored in the Zenodo record.
+      placeholder: https://zenodo.org/records/…/files/preview.webp
+    validations:
+      required: true
+  - type: input
+    id: paper
+    attributes:
+      label: Paper or reference
+      placeholder: https://doi.org/…
+  - type: textarea
+    id: tested_on
+    attributes:
+      label: Tested on
+      description: Exact KomaMRI package versions, one per line.
+      placeholder: |
+        KomaMRI: 0.9.4
+        KomaMRIBase: 0.9.4
+    validations:
+      required: true
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Comma-separated lowercase tags, such as motion, cardiac, or 3d.
+      placeholder: cardiac, motion, 3d

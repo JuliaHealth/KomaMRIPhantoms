@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Submit through the website
+    url: https://juliahealth.github.io/KomaMRIPhantoms/#submit
+    about: Fill in the guided form and preview the card before submitting.

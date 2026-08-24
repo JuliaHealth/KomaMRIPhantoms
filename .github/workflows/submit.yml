@@ -1,0 +1,69 @@
+name: Create phantom submission PR
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  submit:
+    if: startsWith(github.event.issue.title, '[Phantom submission]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Generate and validate entry
+        id: generate
+        continue-on-error: true
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+        run: |
+          node scripts/create-submission.mjs > submission.log 2>&1
+          node scripts/validate.mjs --links >> submission.log 2>&1
+          npm run pages:build >> submission.log 2>&1
+
+      - name: Explain validation failure
+        if: steps.generate.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          {
+            echo 'The submission could not be converted into a pull request:'
+            echo
+            echo '```text'
+            tail -n 30 submission.log
+            echo '```'
+            echo
+            echo 'Please correct the metadata and submit the website form again.'
+          } > submission-failure.md
+          gh issue comment "$ISSUE_NUMBER" --body-file submission-failure.md
+          exit 1
+
+      - name: Open pull request
+        if: steps.generate.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+          ISSUE_USER_ID: ${{ github.event.issue.user.id }}
+          ENTRY_PATH: ${{ steps.generate.outputs.entry_path }}
+        run: |
+          branch="submission/issue-${ISSUE_NUMBER}"
+          git checkout -b "$branch"
+          git add "$ENTRY_PATH"
+          git -c user.name="$ISSUE_USER" -c user.email="${ISSUE_USER_ID}+${ISSUE_USER}@users.noreply.github.com" commit -m "Add ${ENTRY_PATH##*/}"
+          git push origin "$branch"
+          printf 'Submitted by @%s.\n\nCloses #%s\n' "$ISSUE_USER" "$ISSUE_NUMBER" > pull-request.md
+          pr_url=$(gh pr create --base main --head "$branch" --title "Add phantom: ${ENTRY_PATH##*/}" --body-file pull-request.md)
+          gh issue comment "$ISSUE_NUMBER" --body "Created ${pr_url} for maintainer review."
