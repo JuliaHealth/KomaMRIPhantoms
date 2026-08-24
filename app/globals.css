@@ -295,7 +295,8 @@ a { color: inherit; text-decoration: none; }
 .card-links .primary-link { color: var(--mint); }
 .submitted-by { display: flex; align-items: center; gap: 9px; margin-top: 19px; color: var(--muted); font-size: 11px; }
 .submitted-by a { color: var(--ink); font-weight: 750; }
-.avatar { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; background: var(--mint-soft); color: var(--mint-dark); font-size: 10px; font-weight: 800; }
+.avatar { position: relative; display: grid; width: 25px; height: 25px; overflow: hidden; place-items: center; border-radius: 50%; background: var(--mint-soft); color: var(--mint-dark); font-size: 10px; font-weight: 800; }
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
 .empty-state {
   max-width: 1320px;

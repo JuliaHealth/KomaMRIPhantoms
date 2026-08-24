@@ -117,6 +117,15 @@ function PhantomCard({ phantom, preview = false }: { phantom: Phantom; preview?:
         <div className="submitted-by">
           <span className="avatar" aria-hidden="true">
             {(phantom.submitted_by || 'you').slice(0, 1).toUpperCase()}
+            {!preview && (
+              // GitHub redirects this stable username URL to the current avatar.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`https://github.com/${phantom.submitted_by}.png?size=50`}
+                alt=""
+                onError={(event) => event.currentTarget.remove()}
+              />
+            )}
           </span>
           {preview ? (
             <span>Submitted by your GitHub account</span>
